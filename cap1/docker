@@ -1,0 +1,100 @@
+o que é?
+uma plataforma que permite construir, entregar e rodar aplicativos em qualquer lugar
+
+onde usar docker?
+-substituir maquinas virtuais
+-prototipagem de software
+-empacotar software: uma imagem docker não tem dependencias em linux
+-decompor sistemas complexos em microserviços
+-modelar redes
+-rodar todas as partes de um sistema (full-stack)
+-reduzir overhead de debug
+-docker te força a documentar suas dependencias de software
+-habilitar entrega continua CD
+
+conceitos chave
+
+CONTAINERS são sistemas em funcionamento definidos pelas IMAGENS
+as imagens são feitas de um ou mais layers (ou conjuntos de diffs) e metadados (variaveis de ambiente, mapeamento de portas) docker
+
+varios containers podem ser iniciados da mesma imagem
+um container é uma instancia de uma imagem
+
+containers rodam um processo na inicialização, quando esse processo para, o container para
+a imagem base não é alterada pelo container
+containers são separados, mas pode se comunicar
+
+comandos chave
+
+docker build - constroi uma imagem docker
+docker run - ativa uma imagem como um container
+docker commit - faz commit de um container como imagem
+docker tag - cria uma tag para uma imagem
+
+criando uma aplicação docker
+
+maneiras de criar uma imagem docker
+
+comandos docker(manual): inicia um container com docker run e inputa os comandos para criar sua imagem na linha de comando, termina com docker commit
+dockerfile: constroi de uma imagem base conhecida e especifica o build com comandos simples
+dockerfile and configuration management (CM) tool: mesmo que dockerfile, mas você controla uma ferramenta mais sofisticada
+Scratch image and import a set of files: de uma imagem vazia, importa um TAR com os arquivos requeridos
+
+
+comandos docker são uteis se está fazendo POC para ver como funciona, e pode anotar o caminho para voltar
+para definir passos na construção da sua imagem, use dockerfile
+para build mais complexo, use a terceira opção
+a ultima opção é raramente usada, constroi uma imagem vazia, é util se vc quer importar self-contained files criados em algum lugar
+
+dockerfile
+
+é um arquivo texto que contem uma serie de comandos
+
+crie o arquivo Dockerfile
+FROM node 
+LABEL maintainer fernando@ferreirasil.com
+RUN git clone -q https://github.com/docker-in-practice/todo.git
+WORKDIR todo
+RUN npm install > /dev/null
+EXPOSE 8000
+CMD ["npm","start"]
+
+o FROM usa a imagem base do node
+label declara o mantenedor
+depois clona o todo app com o git (ja vem na imagem do node)
+entra na pasta do app com workdir
+usa o npm para instalar as dependencias do software
+usa o expose para dizer que os containers feitos dessa imagem vão escutar na 8000
+usa o cmd para dizer ao docker qual comando será executado quando o container subir
+
+para construir a imagem use docker build path_do_Dockerfile
+o docker cria containers intermediarios e vai os removendo, depois cria uma imagem com uma tag
+Successfully built a6e1c215f98e
+para referenciar de forma facil utilize a tag
+
+hora de inicializar sua imagem como um container
+
+docker run -i -t -p 8000:8000 --name example1 todoapp
+-p mapeia a porta 8000 do container com a porta 8000 do host, --name da ao container um nome exclusivo
+pressione crtl+c para parar o processo e o container
+
+use docker ps -a para ver os containers que foram iniciados e removidos como um processo
+
+docker layering
+
+os layers do docker ajudam a resolver o problema quando vc usa containers em escala
+imagine se você inicia centenas de containers iguais, e cada um deles requeresse uma copia dos arquivos armazenados em algum lugar.
+logo o disco ficaria lotado
+por padrão o docker usa o mecanismo copy-on-write para reduzir o uso do disco
+sempre que um container precisa escrever em um arquivo, isso é feito copiando o arquivo da imagem
+quando um docker commit é feito, esta nova area do disco é congelada e gravada com seu proprio identificador
+
+no exemplo do todoapp foi criado um layer em cima do layer do node, que por sua vez foi criado em cima do ubuntu
+todos os 3 layers podem ser compartilhados atraves de multiplos containers como se fosse uma biblioteca compartilhada
+
+imagine que estamos rodando o serviço como live para pagamento de clientes, épossivel escalar para um numero grande de usuarios
+se estiver desenvolvendo, é possivel rodar varios ambientes
+se estiver testando, é possivel fazer varios testes simultaneos
+
+  
+
